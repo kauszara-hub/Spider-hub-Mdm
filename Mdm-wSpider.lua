@@ -2,18 +2,18 @@
 if not game:IsLoaded() then game.Loaded:Wait() end
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
-if not LocalPlayer.Character then LocalPlayer.CharacterAdded:Wait() end
+if not LocalPlayer:FindFirstChild("PlayerGui") then LocalPlayer:WaitForChild("PlayerGui", 10) end
 
 -- ========== VARIÁVEIS DE ESTADO ==========
 _G.SpiderVelocidade = false
 _G.SpiderPulo = false
 _G.SpiderESP = false
 
--- ========== MENU PRINCIPAL DISPARA DIRETO ==========
+-- ========== INTERFACE DIRETA NO PLAYERGUI ==========
 local menuGui = Instance.new("ScreenGui")
 menuGui.Name = "SpiderMenuMM2"
-pcall(function() menuGui.Parent = game:GetService("CoreGui") end)
-if not menuGui.Parent then menuGui.Parent = LocalPlayer:WaitForChild("PlayerGui") end
+menuGui.ResetOnSpawn = false -- Evita que o menu suma quando você morre
+menuGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
 
 local mainFrame = Instance.new("Frame")
 mainFrame.Size = UDim2.new(0, 210, 0, 240)
@@ -46,7 +46,7 @@ local function criarBotao(texto, pos, funcao)
     btn.Parent = mainFrame
     Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 5)
     
-    btn.MouseButton1Click:Connect(function() funcao(btn) end)
+    btn.MouseButton1Click:Connect(function() pcall(function() funcao(btn) end) end)
 end
 
 -- 1. BOTÃO VELOCIDADE
@@ -116,7 +116,7 @@ criarBotao("❌ Fechar Hub", 195, function()
     menuGui:Destroy()
 end)
 
--- LOOP DO ESP (RODA INDEPENDENTE EM SEGUNDO PLANO)
+-- LOOP DO ESP DINÂMICO
 task.spawn(function()
     while task.wait(1) do
         if _G.SpiderESP then
