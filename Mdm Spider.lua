@@ -1,7 +1,6 @@
 -- Delta Executor Compatibility Fix
 repeat task.wait() until game:IsLoaded()
 local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
 local LocalPlayer = Players.LocalPlayer
 repeat task.wait() until LocalPlayer and LocalPlayer.Character
 
@@ -143,7 +142,7 @@ criarBotaoAlternavel("⚡ Correr Rápido", 50, "Velocidade", function(ligado)
     end
 end)
 
--- Loop para manter a velocidade ativa mesmo se você morrer e renascer
+-- Loop seguro para manter velocidade ao renascer
 LocalPlayer.CharacterAdded:Connect(function(char)
     local hum = char:WaitForChild("Humanoid", 5)
     if hum and alternadores.Velocidade then
@@ -159,7 +158,7 @@ criarBotaoAlternavel("🦘 Pulo Alto", 100, "Pulo", function(ligado)
     end
 end)
 
--- Loop para manter o pulo ativo ao renascer
+-- Loop seguro para manter o pulo ao renascer
 LocalPlayer.CharacterAdded:Connect(function(char)
     local hum = char:WaitForChild("Humanoid", 5)
     if hum and alternadores.Pulo then
@@ -170,7 +169,6 @@ end)
 -- INTERRUPTOR 3: ESP INTELIGENTE POR CORES
 criarBotaoAlternavel("👁️ ESP Inteligente", 150, "ESP", function(ligado)
     if not ligado then
-        -- Limpa todos os ESPs se o botão for desligado
         for _, p in pairs(Players:GetPlayers()) do
             if p.Character and p.Character:FindFirstChild("SpiderHighlight") then
                 p.Character.SpiderHighlight:Destroy()
@@ -179,20 +177,24 @@ criarBotaoAlternavel("👁️ ESP Inteligente", 150, "ESP", function(ligado)
     end
 end)
 
--- Função interna para descobrir a cor baseado nos itens do inventário no MM2
+-- Função protegida contra erros para detectar as classes do MM2
 local function obterCorDoJogador(player)
-    -- Verifica se tem a Faca (Assassino)
-    if player.Backpack:FindFirstChild("Knife") or (player.Character and player.Character:FindFirstChild("Knife")) then
-        return Color3.fromRGB(255, 0, 0) -- Vermelho
-    -- Verifica se tem a Arma (Xerife)
-    elseif player.Backpack:FindFirstChild("Gun") or (player.Character and player.Character:FindFirstChild("Gun")) then
-        return Color3.fromRGB(0, 120, 255) -- Azul
-    end
-    -- Padrão (Inocente)
-    return Color3.fromRGB(0, 255, 80) -- Verde
+    local corDefinida = Color3.fromRGB(0, 255, 80) -- Inocente (Verde) por padrão
+    
+    pcall(function()
+        if player:FindFirstChild("Backpack") then
+            if player.Backpack:FindFirstChild("Knife") or (player.Character and player.Character:FindFirstChild("Knife")) then
+                corDefinida = Color3.fromRGB(255, 0, 0) -- Assassino (Vermelho)
+            elseif player.Backpack:FindFirstChild("Gun") or (player.Character and player.Character:FindFirstChild("Gun")) then
+                corDefinida = Color3.fromRGB(0, 120, 255) -- Xerife (Azul)
+            end
+        end
+    end)
+    
+    return corDefinida
 end
 
--- LOOP DO ESP: Executa a cada 1 segundo em segundo plano para não travar o celular
+-- LOOP DO ESP SEGURO: Evita crashes no Delta móvel
 task.spawn(function()
     while task.wait(1) do
         if alternadores.ESP then
@@ -202,14 +204,12 @@ task.spawn(function()
                     local hl = p.Character:FindFirstChild("SpiderHighlight")
                     
                     if not hl then
-                        -- Cria o efeito de silhueta através da parede se não existir
                         hl = Instance.new("Highlight")
                         hl.Name = "SpiderHighlight"
                         hl.OutlineColor = Color3.fromRGB(255, 255, 255)
                         hl.FillTransparency = 0.4
                         hl.Parent = p.Character
                     end
-                    -- Atualiza a cor dinamicamente se o cargo mudar na rodada
                     hl.FillColor = corIdentificada
                 end
             end
@@ -217,7 +217,7 @@ task.spawn(function()
     end
 end)
 
--- BOTAO 4: FECHAR O HUB COMPLETAMENTE
+-- BOTAO 4: FECHAR O HUB
 local fecharBtn = Instance.new("TextButton")
 fecharBtn.Size = UDim2.new(0.9, 0, 0, 35)
 fecharBtn.Position = UDim2.new(0.05, 0, 0, 200)
@@ -230,7 +230,6 @@ fecharBtn.Parent = mainFrame
 Instance.new("UICorner", fecharBtn).CornerRadius = UDim.new(0, 6)
 
 fecharBtn.MouseButton1Click:Connect(function()
-    -- Reseta os status do jogador antes de fechar
     alternadores.ESP = false
     local char = LocalPlayer.Character
     if char and char:FindFirstChild("Humanoid") then
@@ -243,4 +242,5 @@ fecharBtn.MouseButton1Click:Connect(function()
         end
     end
     menuGui:Destroy()
-end) eu 
+end)
+w
