@@ -140,9 +140,8 @@ frame.Size = UDim2.new(0, 300, 0, 180)
 frame.Position = UDim2.new(0.5, -150, 0.5, -90)
 frame.BackgroundColor3 = Color3.fromRGB(30, 10, 60)
 frame.BorderSizePixel = 0
-frame.Parent = frame.Parent and frame.Parent == keyGui and keyGui or keyGui
-Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 10)
 frame.Parent = keyGui
+Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 10)
 
 local titulo = Instance.new("TextLabel")
 titulo.Size = UDim2.new(1, 0, 0, 35)
