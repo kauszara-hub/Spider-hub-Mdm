@@ -1,6 +1,7 @@
 -- Delta Executor Compatibility Fix
 repeat task.wait() until game:IsLoaded()
 local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
 local LocalPlayer = Players.LocalPlayer
 repeat task.wait() until LocalPlayer and LocalPlayer.Character
 
@@ -76,18 +77,25 @@ end
 
 if not verificarKey() then return end
 
--- ========== COLOQUEI AS FUNÇÕES REAIS DO MM2 AQUI EMBAIXO ==========
+-- ========== VARIÁVEIS DE CONTROLE DE ESTADO ==========
+local alternadores = {
+    Velocidade = false,
+    Pulo = false,
+    ESP = false
+}
+
+-- ========== MENU PRINCIPAL ==========
 local menuGui = Instance.new("ScreenGui")
 menuGui.Name = "SpiderMenuMM2"
 pcall(function() menuGui.Parent = game:GetService("CoreGui") end)
 if not menuGui.Parent then menuGui.Parent = LocalPlayer:WaitForChild("PlayerGui") end
 
 local mainFrame = Instance.new("Frame")
-mainFrame.Size = UDim2.new(0, 200, 0, 250)
+mainFrame.Size = UDim2.new(0, 220, 0, 260)
 mainFrame.Position = UDim2.new(0.1, 0, 0.3, 0)
 mainFrame.BackgroundColor3 = Color3.fromRGB(30, 10, 60)
 mainFrame.Active = true
-mainFrame.Draggable = true -- Você pode arrastar o menu pela tela do celular
+mainFrame.Draggable = true
 mainFrame.Parent = menuGui
 Instance.new("UICorner", mainFrame).CornerRadius = UDim.new(0, 12)
 
@@ -100,53 +108,139 @@ mTitulo.Font = Enum.Font.SourceSansBold
 mTitulo.TextSize = 18
 mTitulo.Parent = mainFrame
 
--- Função Utilitária para Criar Botões Modders rápidos
-local function criarBotao(texto, pos, funcao)
+-- Criador de botões adaptados para interruptores (On/Off)
+local function criarBotaoAlternavel(textoBase, pos, identificador, aoAlternar)
     local btn = Instance.new("TextButton")
     btn.Size = UDim2.new(0.9, 0, 0, 35)
     btn.Position = UDim2.new(0.05, 0, 0, pos)
     btn.BackgroundColor3 = Color3.fromRGB(80, 30, 150)
-    btn.Text = texto
+    btn.Text = textoBase .. " [OFF]"
     btn.TextColor3 = Color3.fromRGB(255, 255, 255)
     btn.Font = Enum.Font.SourceSansBold
-    btn.TextSize = 14
+    btn.TextSize = 13
     btn.Parent = mainFrame
     Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 6)
-    btn.MouseButton1Click:Connect(funcao)
+    
+    btn.MouseButton1Click:Connect(function()
+        alternadores[identificador] = not alternadores[identificador]
+        if alternadores[identificador] then
+            btn.BackgroundColor3 = Color3.fromRGB(0, 180, 80)
+            btn.Text = textoBase .. " [ON]"
+        else
+            btn.BackgroundColor3 = Color3.fromRGB(80, 30, 150)
+            btn.Text = textoBase .. " [OFF]"
+        end
+        aoAlternar(alternadores[identificador])
+    end)
+    return btn
 end
 
--- BOTAO 1: CORRER MUITO (Speedhack)
-criarBotao("⚡ Correr Rápido", 50, function()
+-- INTERRUPTOR 1: VELOCIDADE
+criarBotaoAlternavel("⚡ Correr Rápido", 50, "Velocidade", function(ligado)
     local char = LocalPlayer.Character
     if char and char:FindFirstChild("Humanoid") then
-        char.Humanoid.WalkSpeed = 60 -- Velocidade aumentada
+        char.Humanoid.WalkSpeed = ligado and 60 or 16
     end
 end)
 
--- BOTAO 2: PULAR ALTO (Jumphack)
-criarBotao("🦘 Pulo Alto", 100, function()
-    local char = LocalPlayer.Character
-    if char and char:FindFirstChild("Humanoid") then
-        char.Humanoid.JumpPower = 100 -- Pulo aumentado
+-- Loop para manter a velocidade ativa mesmo se você morrer e renascer
+LocalPlayer.CharacterAdded:Connect(function(char)
+    local hum = char:WaitForChild("Humanoid", 5)
+    if hum and alternadores.Velocidade then
+        hum.WalkSpeed = 60
     end
 end)
 
--- BOTAO 3: ESP / MONITORAR JOGADORES (Muito útil no MM2)
-criarBotao("👁️ Ativar ESP (Ver Paredes)", 150, function()
-    for _, p in pairs(Players:GetPlayers()) do
-        if p ~= LocalPlayer and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
-            if not p.Character.HumanoidRootPart:FindFirstChild("SpiderHighlight") then
-                local hl = Instance.new("Highlight")
-                hl.Name = "SpiderHighlight"
-                hl.FillColor = Color3.fromRGB(255, 0, 0) -- Fica vermelho através das paredes
-                hl.OutlineColor = Color3.fromRGB(255, 255, 255)
-                hl.Parent = p.Character
+-- INTERRUPTOR 2: SUPER PULO
+criarBotaoAlternavel("🦘 Pulo Alto", 100, "Pulo", function(ligado)
+    local char = LocalPlayer.Character
+    if char and char:FindFirstChild("Humanoid") then
+        char.Humanoid.JumpPower = ligado and 100 or 50
+    end
+end)
+
+-- Loop para manter o pulo ativo ao renascer
+LocalPlayer.CharacterAdded:Connect(function(char)
+    local hum = char:WaitForChild("Humanoid", 5)
+    if hum and alternadores.Pulo then
+        hum.JumpPower = 100
+    end
+end)
+
+-- INTERRUPTOR 3: ESP INTELIGENTE POR CORES
+criarBotaoAlternavel("👁️ ESP Inteligente", 150, "ESP", function(ligado)
+    if not ligado then
+        -- Limpa todos os ESPs se o botão for desligado
+        for _, p in pairs(Players:GetPlayers()) do
+            if p.Character and p.Character:FindFirstChild("SpiderHighlight") then
+                p.Character.SpiderHighlight:Destroy()
             end
         end
     end
 end)
 
--- BOTAO 4: FECHAR O MENU
-criarBotao("❌ Fechar Menu", 200, function()
-    menuGui:Destroy()
+-- Função interna para descobrir a cor baseado nos itens do inventário no MM2
+local function obterCorDoJogador(player)
+    -- Verifica se tem a Faca (Assassino)
+    if player.Backpack:FindFirstChild("Knife") or (player.Character and player.Character:FindFirstChild("Knife")) then
+        return Color3.fromRGB(255, 0, 0) -- Vermelho
+    -- Verifica se tem a Arma (Xerife)
+    elseif player.Backpack:FindFirstChild("Gun") or (player.Character and player.Character:FindFirstChild("Gun")) then
+        return Color3.fromRGB(0, 120, 255) -- Azul
+    end
+    -- Padrão (Inocente)
+    return Color3.fromRGB(0, 255, 80) -- Verde
+end
+
+-- LOOP DO ESP: Executa a cada 1 segundo em segundo plano para não travar o celular
+task.spawn(function()
+    while task.wait(1) do
+        if alternadores.ESP then
+            for _, p in pairs(Players:GetPlayers()) do
+                if p ~= LocalPlayer and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
+                    local corIdentificada = obterCorDoJogador(p)
+                    local hl = p.Character:FindFirstChild("SpiderHighlight")
+                    
+                    if not hl then
+                        -- Cria o efeito de silhueta através da parede se não existir
+                        hl = Instance.new("Highlight")
+                        hl.Name = "SpiderHighlight"
+                        hl.OutlineColor = Color3.fromRGB(255, 255, 255)
+                        hl.FillTransparency = 0.4
+                        hl.Parent = p.Character
+                    end
+                    -- Atualiza a cor dinamicamente se o cargo mudar na rodada
+                    hl.FillColor = corIdentificada
+                end
+            end
+        end
+    end
 end)
+
+-- BOTAO 4: FECHAR O HUB COMPLETAMENTE
+local fecharBtn = Instance.new("TextButton")
+fecharBtn.Size = UDim2.new(0.9, 0, 0, 35)
+fecharBtn.Position = UDim2.new(0.05, 0, 0, 200)
+fecharBtn.BackgroundColor3 = Color3.fromRGB(180, 20, 20)
+fecharBtn.Text = "❌ Desativar & Fechar Hub"
+fecharBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+fecharBtn.Font = Enum.Font.SourceSansBold
+fecharBtn.TextSize = 13
+fecharBtn.Parent = mainFrame
+Instance.new("UICorner", fecharBtn).CornerRadius = UDim.new(0, 6)
+
+fecharBtn.MouseButton1Click:Connect(function()
+    -- Reseta os status do jogador antes de fechar
+    alternadores.ESP = false
+    local char = LocalPlayer.Character
+    if char and char:FindFirstChild("Humanoid") then
+        char.Humanoid.WalkSpeed = 16
+        char.Humanoid.JumpPower = 50
+    end
+    for _, p in pairs(Players:GetPlayers()) do
+        if p.Character and p.Character:FindFirstChild("SpiderHighlight") then
+            p.Character.SpiderHighlight:Destroy()
+        end
+    end
+    menuGui:Destroy()
+end) eu 
