@@ -1,29 +1,24 @@
 -- Delta Executor Compatibility Fix
-if not game:IsLoaded() then game.Loaded:Wait() end
+repeat wait() until game:IsLoaded()
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
-if not LocalPlayer:FindFirstChild("PlayerGui") then LocalPlayer:WaitForChild("PlayerGui", 10) end
+repeat wait() until LocalPlayer
+repeat wait() until LocalPlayer.Character
 
--- ========== VARIÁVEIS DE ESTADO ==========
-_G.SpiderVelocidade = false
-_G.SpiderPulo = false
-_G.SpiderESP = false
-
--- ========== INTERFACE DIRETA NO PLAYERGUI ==========
+-- O menu abre sem chave e sem as funções automáticas para isolar o problema
 local menuGui = Instance.new("ScreenGui")
 menuGui.Name = "SpiderMenuMM2"
-menuGui.ResetOnSpawn = false -- Evita que o menu suma quando você morre
-menuGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+pcall(function() menuGui.Parent = game:GetService("CoreGui") end)
+if not menuGui.Parent then menuGui.Parent = LocalPlayer:WaitForChild("PlayerGui") end
 
 local mainFrame = Instance.new("Frame")
-mainFrame.Size = UDim2.new(0, 210, 0, 240)
+mainFrame.Size = UDim2.new(0, 200, 0, 250)
 mainFrame.Position = UDim2.new(0.1, 0, 0.3, 0)
-mainFrame.BackgroundColor3 = Color3.fromRGB(35, 15, 65)
-mainFrame.BorderSizePixel = 0
+mainFrame.BackgroundColor3 = Color3.fromRGB(30, 10, 60)
 mainFrame.Active = true
 mainFrame.Draggable = true
 mainFrame.Parent = menuGui
-Instance.new("UICorner", mainFrame).CornerRadius = UDim.new(0, 8)
+Instance.new("UICorner", mainFrame).CornerRadius = UDim.new(0, 12)
 
 local mTitulo = Instance.new("TextLabel")
 mTitulo.Size = UDim2.new(1, 0, 0, 40)
@@ -31,130 +26,51 @@ mTitulo.BackgroundTransparency = 1
 mTitulo.Text = "🕷️ Spider Lipe HUB"
 mTitulo.TextColor3 = Color3.fromRGB(255, 255, 255)
 mTitulo.Font = Enum.Font.SourceSansBold
-mTitulo.TextSize = 16
+mTitulo.TextSize = 18
 mTitulo.Parent = mainFrame
 
 local function criarBotao(texto, pos, funcao)
     local btn = Instance.new("TextButton")
     btn.Size = UDim2.new(0.9, 0, 0, 35)
     btn.Position = UDim2.new(0.05, 0, 0, pos)
-    btn.BackgroundColor3 = Color3.fromRGB(85, 35, 155)
+    btn.BackgroundColor3 = Color3.fromRGB(80, 30, 150)
     btn.Text = texto
     btn.TextColor3 = Color3.fromRGB(255, 255, 255)
     btn.Font = Enum.Font.SourceSansBold
-    btn.TextSize = 13
+    btn.TextSize = 14
     btn.Parent = mainFrame
-    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 5)
-    
-    btn.MouseButton1Click:Connect(function() pcall(function() funcao(btn) end) end)
+    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 6)
+    btn.MouseButton1Click:Connect(funcao)
 end
 
--- 1. BOTÃO VELOCIDADE
-criarBotao("⚡ Correr Rápido [OFF]", 50, function(btn)
-    _G.SpiderVelocidade = not _G.SpiderVelocidade
+criarBotao("⚡ Correr Rápido", 50, function()
     local char = LocalPlayer.Character
     if char and char:FindFirstChild("Humanoid") then
-        if _G.SpiderVelocidade then
-            char.Humanoid.WalkSpeed = 60
-            btn.Text = "⚡ Correr Rápido [ON]"
-            btn.BackgroundColor3 = Color3.fromRGB(0, 170, 75)
-        else
-            char.Humanoid.WalkSpeed = 16
-            btn.Text = "⚡ Correr Rápido [OFF]"
-            btn.BackgroundColor3 = Color3.fromRGB(85, 35, 155)
-        end
+        char.Humanoid.WalkSpeed = 60
     end
 end)
 
--- 2. BOTÃO PULO
-criarBotao("🦘 Pulo Alto [OFF]", 100, function(btn)
-    _G.SpiderPulo = not _G.SpiderPulo
+criarBotao("🦘 Pulo Alto", 100, function()
     local char = LocalPlayer.Character
     if char and char:FindFirstChild("Humanoid") then
-        if _G.SpiderPulo then
-            char.Humanoid.JumpPower = 100
-            btn.Text = "🦘 Pulo Alto [ON]"
-            btn.BackgroundColor3 = Color3.fromRGB(0, 170, 75)
-        else
-            char.Humanoid.JumpPower = 50
-            btn.Text = "🦘 Pulo Alto [OFF]"
-            btn.BackgroundColor3 = Color3.fromRGB(85, 35, 155)
-        end
+        char.Humanoid.JumpPower = 100
     end
 end)
 
--- 3. BOTÃO ESP INTELIGENTE
-criarBotao("👁️ ESP Inteligente [OFF]", 150, function(btn)
-    _G.SpiderESP = not _G.SpiderESP
-    if _G.SpiderESP then
-        btn.Text = "👁️ ESP Inteligente [ON]"
-        btn.BackgroundColor3 = Color3.fromRGB(0, 170, 75)
-    else
-        btn.Text = "👁️ ESP Inteligente [OFF]"
-        btn.BackgroundColor3 = Color3.fromRGB(85, 35, 155)
-        for _, p in pairs(Players:GetPlayers()) do
-            if p.Character and p.Character:FindFirstChild("SpiderHighlight") then
-                p.Character.SpiderHighlight:Destroy()
+criarBotao("👁️ Ativar ESP (Ver Paredes)", 150, function()
+    for _, p in pairs(Players:GetPlayers()) do
+        if p ~= LocalPlayer and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
+            if not p.Character.HumanoidRootPart:FindFirstChild("SpiderHighlight") then
+                local hl = Instance.new("Highlight")
+                hl.Name = "SpiderHighlight"
+                hl.FillColor = Color3.fromRGB(255, 0, 0)
+                hl.OutlineColor = Color3.fromRGB(255, 255, 255)
+                hl.Parent = p.Character
             end
         end
     end
 end)
 
--- 4. BOTÃO FECHAR
-criarBotao("❌ Fechar Hub", 195, function()
-    _G.SpiderESP = false
-    local char = LocalPlayer.Character
-    if char and char:FindFirstChild("Humanoid") then
-        char.Humanoid.WalkSpeed = 16
-        char.Humanoid.JumpPower = 50
-    end
-    for _, p in pairs(Players:GetPlayers()) do
-        if p.Character and p.Character:FindFirstChild("SpiderHighlight") then
-            p.Character.SpiderHighlight:Destroy()
-        end
-    end
+criarBotao("❌ Fechar Menu", 200, function()
     menuGui:Destroy()
 end)
-
--- LOOP DO ESP DINÂMICO
-task.spawn(function()
-    while task.wait(1) do
-        if _G.SpiderESP then
-            for _, p in pairs(Players:GetPlayers()) do
-                if p ~= LocalPlayer and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
-                    local corFila = Color3.fromRGB(0, 255, 85) -- Inocente (Verde)
-                    
-                    pcall(function()
-                        if p:FindFirstChild("Backpack") then
-                            if p.Backpack:FindFirstChild("Knife") or p.Character:FindFirstChild("Knife") then
-                                corFila = Color3.fromRGB(255, 0, 0) -- Assassino (Vermelho)
-                            elseif p.Backpack:FindFirstChild("Gun") or p.Character:FindFirstChild("Gun") then
-                                corFila = Color3.fromRGB(0, 125, 255) -- Xerife (Azul)
-                            end
-                        end
-                        
-                        local hl = p.Character:FindFirstChild("SpiderHighlight")
-                        if not hl then
-                            hl = Instance.new("Highlight")
-                            hl.Name = "SpiderHighlight"
-                            hl.OutlineColor = Color3.fromRGB(255, 255, 255)
-                            hl.FillTransparency = 0.4
-                            hl.Parent = p.Character
-                        end
-                        hl.FillColor = corFila
-                    end)
-                end
-            end
-        end
-    end
-end)
-
--- Mantém velocidade e pulo ativos ao reviver
-LocalPlayer.CharacterAdded:Connect(function(char)
-    local hum = char:WaitForChild("Humanoid", 5)
-    if hum then
-        if _G.SpiderVelocidade then hum.WalkSpeed = 60 end
-        if _G.SpiderPulo then hum.JumpPower = 100 end
-    end
-end)
-w
