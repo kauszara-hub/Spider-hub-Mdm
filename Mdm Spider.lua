@@ -1,102 +1,29 @@
 -- Delta Executor Compatibility Fix
-repeat task.wait() until game:IsLoaded()
+if not game:IsLoaded() then game.Loaded:Wait() end
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
-repeat task.wait() until LocalPlayer and LocalPlayer.Character
+if not LocalPlayer.Character then LocalPlayer.CharacterAdded:Wait() end
 
--- ========== KEY SYSTEM ==========
-local function decodificar(...)
-    local chars = {...}
-    local resultado = ""
-    for i = 1, #chars do resultado = resultado .. string.char(chars[i]) end
-    return resultado
-end
+-- ========== VARIÁVEIS DE ESTADO ==========
+_G.SpiderVelocidade = false
+_G.SpiderPulo = false
+_G.SpiderESP = false
 
-local KEY_VALIDA = decodificar(83, 80, 73, 68, 69, 82, 75, 69, 89, 89) -- SPIDERKEYY
-
-local function verificarKey()
-    if _G.SPIDER_VERIFICADA then return true end
-    
-    local keyGui = Instance.new("ScreenGui")
-    keyGui.Name = "SpiderKey"
-    pcall(function() keyGui.Parent = game:GetService("CoreGui") end)
-    if not keyGui.Parent then keyGui.Parent = LocalPlayer:WaitForChild("PlayerGui") end
-    
-    local frame = Instance.new("Frame")
-    frame.Size = UDim2.new(0, 300, 0, 220)
-    frame.Position = UDim2.new(0.5, -150, 0.5, -110)
-    frame.BackgroundColor3 = Color3.fromRGB(30, 10, 60)
-    frame.BorderSizePixel = 0
-    frame.Parent = keyGui
-    Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 10)
-    
-    local titulo = Instance.new("TextLabel")
-    titulo.Size = UDim2.new(1, 0, 0, 35)
-    titulo.BackgroundTransparency = 1
-    titulo.Text = "🕷️ Spider Lipe - Key System"
-    titulo.TextColor3 = Color3.fromRGB(255, 255, 255)
-    titulo.Font = Enum.Font.SourceSansBold
-    titulo.TextSize = 16
-    titulo.Parent = frame
-    
-    local keyBox = Instance.new("TextBox")
-    keyBox.Size = UDim2.new(0.9, 0, 0, 30)
-    keyBox.Position = UDim2.new(0.05, 0, 0.4, 0)
-    keyBox.BackgroundColor3 = Color3.fromRGB(60, 20, 120)
-    keyBox.TextColor3 = Color3.fromRGB(255, 255, 255)
-    keyBox.Font = Enum.Font.SourceSans
-    keyBox.TextSize = 14
-    keyBox.PlaceholderText = "Digite a key: SPIDERKEYY"
-    keyBox.Parent = frame
-    Instance.new("UICorner", keyBox).CornerRadius = UDim.new(0, 5)
-    
-    local verificarBtn = Instance.new("TextButton")
-    verificarBtn.Size = UDim2.new(0.9, 0, 0, 35)
-    verificarBtn.Position = UDim2.new(0.05, 0, 0.65, 0)
-    verificarBtn.BackgroundColor3 = Color3.fromRGB(0, 255, 100)
-    verificarBtn.Text = "✅ VERIFICAR KEY"
-    verificarBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-    verificarBtn.Font = Enum.Font.SourceSansBold
-    verificarBtn.TextSize = 14
-    verificarBtn.Parent = frame
-    Instance.new("UICorner", verificarBtn).CornerRadius = UDim.new(0, 6)
-    
-    local keyCorreta = false
-    verificarBtn.MouseButton1Click:Connect(function()
-        if keyBox.Text == KEY_VALIDA then
-            keyCorreta = true
-            _G.SPIDER_VERIFICADA = true
-            keyGui:Destroy()
-        end
-    end)
-    
-    repeat task.wait() until keyCorreta or not keyGui.Parent
-    return keyCorreta
-end
-
-if not verificarKey() then return end
-
--- ========== VARIÁVEIS DE CONTROLE DE ESTADO ==========
-local alternadores = {
-    Velocidade = false,
-    Pulo = false,
-    ESP = false
-}
-
--- ========== MENU PRINCIPAL ==========
+-- ========== MENU PRINCIPAL DISPARA DIRETO ==========
 local menuGui = Instance.new("ScreenGui")
 menuGui.Name = "SpiderMenuMM2"
 pcall(function() menuGui.Parent = game:GetService("CoreGui") end)
 if not menuGui.Parent then menuGui.Parent = LocalPlayer:WaitForChild("PlayerGui") end
 
 local mainFrame = Instance.new("Frame")
-mainFrame.Size = UDim2.new(0, 220, 0, 260)
+mainFrame.Size = UDim2.new(0, 210, 0, 240)
 mainFrame.Position = UDim2.new(0.1, 0, 0.3, 0)
-mainFrame.BackgroundColor3 = Color3.fromRGB(30, 10, 60)
+mainFrame.BackgroundColor3 = Color3.fromRGB(35, 15, 65)
+mainFrame.BorderSizePixel = 0
 mainFrame.Active = true
 mainFrame.Draggable = true
 mainFrame.Parent = menuGui
-Instance.new("UICorner", mainFrame).CornerRadius = UDim.new(0, 12)
+Instance.new("UICorner", mainFrame).CornerRadius = UDim.new(0, 8)
 
 local mTitulo = Instance.new("TextLabel")
 mTitulo.Size = UDim2.new(1, 0, 0, 40)
@@ -104,71 +31,67 @@ mTitulo.BackgroundTransparency = 1
 mTitulo.Text = "🕷️ Spider Lipe HUB"
 mTitulo.TextColor3 = Color3.fromRGB(255, 255, 255)
 mTitulo.Font = Enum.Font.SourceSansBold
-mTitulo.TextSize = 18
+mTitulo.TextSize = 16
 mTitulo.Parent = mainFrame
 
--- Criador de botões adaptados para interruptores (On/Off)
-local function criarBotaoAlternavel(textoBase, pos, identificador, aoAlternar)
+local function criarBotao(texto, pos, funcao)
     local btn = Instance.new("TextButton")
     btn.Size = UDim2.new(0.9, 0, 0, 35)
     btn.Position = UDim2.new(0.05, 0, 0, pos)
-    btn.BackgroundColor3 = Color3.fromRGB(80, 30, 150)
-    btn.Text = textoBase .. " [OFF]"
+    btn.BackgroundColor3 = Color3.fromRGB(85, 35, 155)
+    btn.Text = texto
     btn.TextColor3 = Color3.fromRGB(255, 255, 255)
     btn.Font = Enum.Font.SourceSansBold
     btn.TextSize = 13
     btn.Parent = mainFrame
-    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 6)
+    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 5)
     
-    btn.MouseButton1Click:Connect(function()
-        alternadores[identificador] = not alternadores[identificador]
-        if alternadores[identificador] then
-            btn.BackgroundColor3 = Color3.fromRGB(0, 180, 80)
-            btn.Text = textoBase .. " [ON]"
-        else
-            btn.BackgroundColor3 = Color3.fromRGB(80, 30, 150)
-            btn.Text = textoBase .. " [OFF]"
-        end
-        aoAlternar(alternadores[identificador])
-    end)
-    return btn
+    btn.MouseButton1Click:Connect(function() funcao(btn) end)
 end
 
--- INTERRUPTOR 1: VELOCIDADE
-criarBotaoAlternavel("⚡ Correr Rápido", 50, "Velocidade", function(ligado)
+-- 1. BOTÃO VELOCIDADE
+criarBotao("⚡ Correr Rápido [OFF]", 50, function(btn)
+    _G.SpiderVelocidade = not _G.SpiderVelocidade
     local char = LocalPlayer.Character
     if char and char:FindFirstChild("Humanoid") then
-        char.Humanoid.WalkSpeed = ligado and 60 or 16
+        if _G.SpiderVelocidade then
+            char.Humanoid.WalkSpeed = 60
+            btn.Text = "⚡ Correr Rápido [ON]"
+            btn.BackgroundColor3 = Color3.fromRGB(0, 170, 75)
+        else
+            char.Humanoid.WalkSpeed = 16
+            btn.Text = "⚡ Correr Rápido [OFF]"
+            btn.BackgroundColor3 = Color3.fromRGB(85, 35, 155)
+        end
     end
 end)
 
--- Loop seguro para manter velocidade ao renascer
-LocalPlayer.CharacterAdded:Connect(function(char)
-    local hum = char:WaitForChild("Humanoid", 5)
-    if hum and alternadores.Velocidade then
-        hum.WalkSpeed = 60
-    end
-end)
-
--- INTERRUPTOR 2: SUPER PULO
-criarBotaoAlternavel("🦘 Pulo Alto", 100, "Pulo", function(ligado)
+-- 2. BOTÃO PULO
+criarBotao("🦘 Pulo Alto [OFF]", 100, function(btn)
+    _G.SpiderPulo = not _G.SpiderPulo
     local char = LocalPlayer.Character
     if char and char:FindFirstChild("Humanoid") then
-        char.Humanoid.JumpPower = ligado and 100 or 50
+        if _G.SpiderPulo then
+            char.Humanoid.JumpPower = 100
+            btn.Text = "🦘 Pulo Alto [ON]"
+            btn.BackgroundColor3 = Color3.fromRGB(0, 170, 75)
+        else
+            char.Humanoid.JumpPower = 50
+            btn.Text = "🦘 Pulo Alto [OFF]"
+            btn.BackgroundColor3 = Color3.fromRGB(85, 35, 155)
+        end
     end
 end)
 
--- Loop seguro para manter o pulo ao renascer
-LocalPlayer.CharacterAdded:Connect(function(char)
-    local hum = char:WaitForChild("Humanoid", 5)
-    if hum and alternadores.Pulo then
-        hum.JumpPower = 100
-    end
-end)
-
--- INTERRUPTOR 3: ESP INTELIGENTE POR CORES
-criarBotaoAlternavel("👁️ ESP Inteligente", 150, "ESP", function(ligado)
-    if not ligado then
+-- 3. BOTÃO ESP INTELIGENTE
+criarBotao("👁️ ESP Inteligente [OFF]", 150, function(btn)
+    _G.SpiderESP = not _G.SpiderESP
+    if _G.SpiderESP then
+        btn.Text = "👁️ ESP Inteligente [ON]"
+        btn.BackgroundColor3 = Color3.fromRGB(0, 170, 75)
+    else
+        btn.Text = "👁️ ESP Inteligente [OFF]"
+        btn.BackgroundColor3 = Color3.fromRGB(85, 35, 155)
         for _, p in pairs(Players:GetPlayers()) do
             if p.Character and p.Character:FindFirstChild("SpiderHighlight") then
                 p.Character.SpiderHighlight:Destroy()
@@ -177,60 +100,9 @@ criarBotaoAlternavel("👁️ ESP Inteligente", 150, "ESP", function(ligado)
     end
 end)
 
--- Função protegida contra erros para detectar as classes do MM2
-local function obterCorDoJogador(player)
-    local corDefinida = Color3.fromRGB(0, 255, 80) -- Inocente (Verde) por padrão
-    
-    pcall(function()
-        if player:FindFirstChild("Backpack") then
-            if player.Backpack:FindFirstChild("Knife") or (player.Character and player.Character:FindFirstChild("Knife")) then
-                corDefinida = Color3.fromRGB(255, 0, 0) -- Assassino (Vermelho)
-            elseif player.Backpack:FindFirstChild("Gun") or (player.Character and player.Character:FindFirstChild("Gun")) then
-                corDefinida = Color3.fromRGB(0, 120, 255) -- Xerife (Azul)
-            end
-        end
-    end)
-    
-    return corDefinida
-end
-
--- LOOP DO ESP SEGURO: Evita crashes no Delta móvel
-task.spawn(function()
-    while task.wait(1) do
-        if alternadores.ESP then
-            for _, p in pairs(Players:GetPlayers()) do
-                if p ~= LocalPlayer and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
-                    local corIdentificada = obterCorDoJogador(p)
-                    local hl = p.Character:FindFirstChild("SpiderHighlight")
-                    
-                    if not hl then
-                        hl = Instance.new("Highlight")
-                        hl.Name = "SpiderHighlight"
-                        hl.OutlineColor = Color3.fromRGB(255, 255, 255)
-                        hl.FillTransparency = 0.4
-                        hl.Parent = p.Character
-                    end
-                    hl.FillColor = corIdentificada
-                end
-            end
-        end
-    end
-end)
-
--- BOTAO 4: FECHAR O HUB
-local fecharBtn = Instance.new("TextButton")
-fecharBtn.Size = UDim2.new(0.9, 0, 0, 35)
-fecharBtn.Position = UDim2.new(0.05, 0, 0, 200)
-fecharBtn.BackgroundColor3 = Color3.fromRGB(180, 20, 20)
-fecharBtn.Text = "❌ Desativar & Fechar Hub"
-fecharBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-fecharBtn.Font = Enum.Font.SourceSansBold
-fecharBtn.TextSize = 13
-fecharBtn.Parent = mainFrame
-Instance.new("UICorner", fecharBtn).CornerRadius = UDim.new(0, 6)
-
-fecharBtn.MouseButton1Click:Connect(function()
-    alternadores.ESP = false
+-- 4. BOTÃO FECHAR
+criarBotao("❌ Fechar Hub", 195, function()
+    _G.SpiderESP = false
     local char = LocalPlayer.Character
     if char and char:FindFirstChild("Humanoid") then
         char.Humanoid.WalkSpeed = 16
@@ -242,5 +114,47 @@ fecharBtn.MouseButton1Click:Connect(function()
         end
     end
     menuGui:Destroy()
+end)
+
+-- LOOP DO ESP (RODA INDEPENDENTE EM SEGUNDO PLANO)
+task.spawn(function()
+    while task.wait(1) do
+        if _G.SpiderESP then
+            for _, p in pairs(Players:GetPlayers()) do
+                if p ~= LocalPlayer and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
+                    local corFila = Color3.fromRGB(0, 255, 85) -- Inocente (Verde)
+                    
+                    pcall(function()
+                        if p:FindFirstChild("Backpack") then
+                            if p.Backpack:FindFirstChild("Knife") or p.Character:FindFirstChild("Knife") then
+                                corFila = Color3.fromRGB(255, 0, 0) -- Assassino (Vermelho)
+                            elseif p.Backpack:FindFirstChild("Gun") or p.Character:FindFirstChild("Gun") then
+                                corFila = Color3.fromRGB(0, 125, 255) -- Xerife (Azul)
+                            end
+                        end
+                        
+                        local hl = p.Character:FindFirstChild("SpiderHighlight")
+                        if not hl then
+                            hl = Instance.new("Highlight")
+                            hl.Name = "SpiderHighlight"
+                            hl.OutlineColor = Color3.fromRGB(255, 255, 255)
+                            hl.FillTransparency = 0.4
+                            hl.Parent = p.Character
+                        end
+                        hl.FillColor = corFila
+                    end)
+                end
+            end
+        end
+    end
+end)
+
+-- Mantém velocidade e pulo ativos ao reviver
+LocalPlayer.CharacterAdded:Connect(function(char)
+    local hum = char:WaitForChild("Humanoid", 5)
+    if hum then
+        if _G.SpiderVelocidade then hum.WalkSpeed = 60 end
+        if _G.SpiderPulo then hum.JumpPower = 100 end
+    end
 end)
 w
